@@ -68,11 +68,7 @@ public class Cloud extends GameEntity implements Obscuring {
             this.setX(movement);
             if (this.getX() < 0) {
                 this.markForRemoval();
-            } else {
-                //do nothing
             }
-        } else {
-            //do nothing
         }
     }
 }

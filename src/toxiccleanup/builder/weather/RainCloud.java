@@ -20,32 +20,30 @@ import toxiccleanup.builder.SpriteGallery;
  *
  * @provided
  */
-public class RainCloud extends Cloud {
+public class RainCloud extends CloudAnimateBase  {
     private static final SpriteGroup art = SpriteGallery.raincloud;
-    private int currentArtFrame = 1;
-    private int maxFrames = 5;
-    private final TickTimer animTimer = new RepeatingTimer(12);
 
+    public static final int SPAWN_TIME = Cloud.SPAWN_TIME;
 
+    /**
+     * Constructs a RainCloud at the given position.
+     *
+     * @param position the initial position of this rain cloud.
+     * @requires position != null
+     * @ensures getX() == position.getX() && getY() == position.getY()
+     */
     public RainCloud(Positionable position) {
         super(position);
-        setSprite(art.getSprite(currentArtFrame + ""));
     }
 
+    /**
+     * Returns the SpriteGroup used to render this rain cloud.
+     *
+     * @ensures \result != null && \result == SpriteGallery.raincloud
+     * @return the rain cloud sprite art.
+     */
     @Override
-    public void tick(EngineState state, GameState game) {
-        super.tick(state, game);
-        this.animTimer.tick();
-
-        if (this.animTimer.isFinished()) {
-            currentArtFrame += 1;
-            if (currentArtFrame > maxFrames) {
-                currentArtFrame = 1;
-            }
-        }
-        setSprite(art.getSprite(currentArtFrame + ""));
-        if (getX() < 0 || getX() > state.getDimensions().windowSize()) {
-            markForRemoval();
-        }
+    protected SpriteGroup getArt() {
+        return art;
     }
 }

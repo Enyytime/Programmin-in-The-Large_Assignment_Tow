@@ -20,40 +20,39 @@ import toxiccleanup.builder.SpriteGallery;
  *
  * @provided
  */
-public class AcidCloud extends Cloud implements Damaging {
-    final public static int SPAWN_TIME = 300;
-    private static final SpriteGroup art = SpriteGallery.acidcloud;
-    private int currentArtFrame = 1;
-    private final int maxFrames = 5;
-    private final TickTimer animTimer = new RepeatingTimer(12);
+public class AcidCloud extends CloudAnimateBase implements Damaging {
+    public static final int SPAWN_TIME = Cloud.SPAWN_TIME;
 
+    private static final SpriteGroup art = SpriteGallery.acidcloud;
     /**
      * @param position
      */
     public AcidCloud(Positionable position) {
         super(position);
-        setSprite(art.getSprite(currentArtFrame + ""));
     }
 
+    /**
+     * Returns the {@link SpriteGroup} used to render this acid cloud.
+     *
+     * @ensures \result != null && \result == SpriteGallery.acidcloud
+     * @return the acid cloud sprite art.
+     */
     @Override
-    public void tick(EngineState state, GameState game) {
-        super.tick(state, game);
-        this.animTimer.tick();
-
-        if (this.animTimer.isFinished()) {
-            currentArtFrame += 1;
-            if (currentArtFrame > maxFrames) {
-                currentArtFrame = 1;
-            }
-        }
-        setSprite(art.getSprite(currentArtFrame + ""));
-        if (getX() < 0 || getX() > state.getDimensions().windowSize()) {
-            markForRemoval();
-        } else {
-            //do nothing
-        }
+    protected SpriteGroup getArt() {
+        return art;
     }
 
+    /**
+     * Returns a Damage instance at this cloud's current position.
+     *
+     * @param dimensions screen and tile dimensions.
+     * @param position theposition of the entity querying for damage.
+     * @requires dimensions != null && postion != null
+     * @ensures \result != null
+     *          && \result.getX() == getX()
+     *          && \result.getY() == getY()
+     * @return a new {@link Damage} at this cloud's current position.
+     */
     @Override
     public Damage getDamage(Dimensions dimensions, Positionable position) {
         return new Damage(this.getPosition());
