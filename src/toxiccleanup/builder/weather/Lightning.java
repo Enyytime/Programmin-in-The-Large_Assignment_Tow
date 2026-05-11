@@ -36,6 +36,10 @@ public class Lightning extends GameEntity implements Damaging {
      * Constructs {@link Lightning} at the given position.
      *
      * @param position the position we wish to construct the lightning instance at.
+     *
+     * @requires position != null
+     * @ensures getX() == position.getX() && getY() == position.getY()
+     *          && animFrame == 1
      */
     public Lightning(Positionable position) {
         super(position);
@@ -67,6 +71,19 @@ public class Lightning extends GameEntity implements Damaging {
     }
 
 
+    /**
+     * Returns a LightningDamage instance for this strike's position,
+     * used by WeatherManager for positional overlap checks.
+     *
+     * @param dimensions tile and screen dimensions.
+     * @param position   the position of the entity querying for damage.
+     *
+     * @requires dimensions != null && position != null
+     * @ensures \result != null
+     *          && \result.getType().equals(LightningDamage.TYPE)
+     *
+     * @return a new {@link LightningDamage} at this strike's current position.
+     */
     @Override
     public Damage getDamage(Dimensions dimensions, Positionable position) {
         return new LightningDamage(this.getPosition());
@@ -102,7 +119,7 @@ public class Lightning extends GameEntity implements Damaging {
      */
     private void updateArt() {
         animFrame += 1;
-        if (animFrame > finalAnimFrameIndex) { //reset our animation back to the start
+        if (animFrame > finalAnimFrameIndex) { // reset our animation back to the start
             animFrame = finalAnimFrameIndex;
         }
         setSprite(art.getSprite(animFrame + ""));

@@ -35,13 +35,11 @@ public class MachinesManager implements Machines {
     private int power;
 
     /**
-     * Constructs a new {@link MachinesManager} starting at full power (14). Use this
-     * constructor when the game should begin with maximum power available.
+     * Constructs a new {@link MachinesManager} starting at full power (14).
      */
     public MachinesManager() {
         power = MachinesManager.DEFAULT_POWER;
     }
-
 
     /**
      * Here for testability purposes. Allows us to inject an alternative {@link TickTimer}
@@ -51,10 +49,8 @@ public class MachinesManager implements Machines {
      *                                to use instead of the default internal {@link TickTimer}.
      */
     public MachinesManager(TickTimer teleporterCooldownTimer) {
-        this.power = DEFAULT_POWER;
         this.teleporterCooldown = teleporterCooldownTimer;
     }
-
 
     /**
      * Constructs a new {@link MachinesManager} with the given amount of starting power.
@@ -66,69 +62,36 @@ public class MachinesManager implements Machines {
         this.power = Math.clamp(power, 0, maxPower);
     }
 
-    /**
-     * Returns whether the current power level is sufficient for a machine's operation.
-     *
-     * @param powerRequirement the minimum number of power units needed.
-     * @return {@code true} if the current power is greater than or equal to
-     * {@code powerRequirement}; {@code false} otherwise.
-     */
     @Override
     public boolean hasRequiredPower(int powerRequirement) {
         return power >= powerRequirement;
     }
 
-    /**
-     * Returns the current power level of this machine manager.
-     *
-     * @return the current power, in the range [0, {@link #getMaxPower()}].
-     */
     @Override
     public int getPower() {
         return power;
     }
 
-    /**
-     * Sets the power to the given value, clamped to [0, maxPower (14 by default)].
-     *
-     * @param value the power level to set.
-     */
     @Override
     public void setPower(int value) {
         power = Math.clamp(value, 0, maxPower);
     }
 
-    /**
-     * Returns the maximum power capacity of this {@link MachinesManager}.
-     *
-     * @return the upper bound for power, fixed at 14 by default.
-     */
     @Override
     public int getMaxPower() {
         return maxPower;
     }
 
-    /**
-     * Adds {@code amount} to the current power level, then clamps the result to [0, maxPower].
-     * Pass a negative value to subtract power.
-     *
-     * @param amount the amount of power to add (negative to subtract).
-     * @ensures getPower() == Math.clamp(\old(getPower()) + amount, 0, getMaxPower())
-     */
     @Override
     public void adjust(int amount) {
+        this.gainPower(amount);
+    }
+
+    private void gainPower(int amount) {
         power += amount;
         power = Math.clamp(power, 0, maxPower);
     }
 
-    /**
-     * Attempts to create a {@link SolarPanel} at the given location. If the current power is
-     * at least 3 (the solar panel's cost), deducts 3 power and returns the new instance.
-     * Returns {@code null} if there is insufficient power.
-     *
-     * @param position the position we wish to spawn the {@link SolarPanel} at.
-     * @return the newly created {@link SolarPanel}, or {@code null} if power &lt; 3.
-     */
     @Override
     public SolarPanel spawnSolarPanel(Positionable position) {
         if (power >= SolarPanel.COST) {
@@ -138,14 +101,6 @@ public class MachinesManager implements Machines {
         return null;
     }
 
-    /**
-     * Attempts to create a {@link LightningRod} at the given location. If the current power is
-     * at least 1 (the lightning rod's cost), deducts 1 power and returns the new instance.
-     * Returns {@code null} if there is insufficient power.
-     *
-     * @param position the position we wish to spawn the {@link LightningRod} at.
-     * @return the newly created {@link LightningRod}, or {@code null} if power &lt; 1.
-     */
     @Override
     public LightningRod spawnLightningRod(Positionable position) {
         if (power >= LightningRod.COST) {
@@ -155,16 +110,6 @@ public class MachinesManager implements Machines {
         return null;
     }
 
-
-    /**
-     * Attempts to create a {@link Teleporter} at the given location. If the current power is
-     * at least 2 (the teleporter's cost), deducts 2 power, records the teleporter's position
-     * for future {@link #getNextTeleporterPosition} calls, and returns the new instance.
-     * Returns {@code null} if there is insufficient power.
-     *
-     * @param position the position we wish to spawn the {@link Teleporter} at.
-     * @return the newly created {@link Teleporter}, or {@code null} if power &lt; 2.
-     */
     @Override
     public Teleporter spawnTeleporter(Positionable position) {
         if (power >= Teleporter.COST) {
@@ -177,27 +122,24 @@ public class MachinesManager implements Machines {
 
     /**
      * Returns the position of a teleporter other than the one at {@code excludedPosition},
-     * chosen at random from all registered teleporter locations. This is used by the
-     * {@link Teleporter} to determine where to send the player. If only one teleporter exists,
-     * its own position is returned (the player teleports in place).
+     * chosen at random from all registered teleporter locations.
      *
-     * @param excludedPosition the position of the teleporter the player is currently standing on;
-     *                         will be excluded from the random selection when possible.
-     * @return the next position ({@link Positionable}) from stored {@link Teleporter} positions.
+     * @param excludedPosition the position of the teleporter the player is currently standing on.
+     * @return the next teleporter position, or {@code excludedPosition} on cooldown.
      */
     @Override
     public Positionable getNextTeleporterPosition(Positionable excludedPosition) {
-        //there is only one possible response so send that back
         if (teleporterPositions.size() == 1) {
             return teleporterPositions.getFirst();
         }
-        if (!teleporterCooldown.isFinished()) { //teleports are on cooldown
+        if (!teleporterCooldown.isFinished()) {
             return excludedPosition;
         }
         final ArrayList<Positionable> validPositions = new ArrayList<>();
         for (Positionable position : teleporterPositions) {
-            final boolean notOverlappingExcludedPosition = (position.getX() != excludedPosition.getX()
-                    && position.getY() != excludedPosition.getY());
+            // TYPO FIX: was (position.getX() != excludedPosition.getX()
+            //               && position.getY() != excludedPosition.getY())
+            final boolean notOverlappingExcludedPosition = !(position.equals(excludedPosition));
             if (notOverlappingExcludedPosition) {
                 validPositions.add(position);
             }
@@ -209,17 +151,6 @@ public class MachinesManager implements Machines {
         return validPositions.get(randomIndex);
     }
 
-    /**
-     * Attempts to create a {@link Pump} at the given position targeting the given
-     * {@link Adjustable}. If the current power is at least 5 (the pump's cost), deducts 5
-     * power and returns a new {@link Pump} that will call {@link Adjustable#adjust(int)} on
-     * {@code adjustable} every 100 ticks. Returns {@code null} if there is insufficient power.
-     *
-     * @param position   the position we wish to spawn the {@link Pump} at.
-     * @param adjustable the object (e.g. a {@link toxiccleanup.builder.entities.tiles.ToxicField}) whose
-     *                   adjustable value will be reduced each time the pump fires.
-     * @return the newly created {@link Pump}, or {@code null} if power &lt; 5.
-     */
     @Override
     public Pump spawnPump(Positionable position, Adjustable adjustable) {
         if (power >= Pump.COST) {
@@ -229,14 +160,6 @@ public class MachinesManager implements Machines {
         return null;
     }
 
-    /**
-     * Advances component state by one game tick using engine and game context.
-     *
-     * @param state The state of the engine, including the mouse, keyboard information and
-     *              dimension. Useful for processing keyboard presses or mouse movement.
-     * @param game  The state of the game, including the player and world. Can be used to query or
-     *              update the game state.wd
-     */
     @Override
     public void tick(EngineState state, GameState game) {
         teleporterCooldown.tick();

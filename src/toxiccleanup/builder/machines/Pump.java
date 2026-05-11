@@ -27,7 +27,7 @@ import toxiccleanup.builder.weather.Weather;
  *
  * @provided
  */
-public class Pump extends DamageableMachineBase implements Powered, PlayerOverHook {
+public class Pump extends GameEntity implements Powered, PlayerOverHook {
     /**
      * The number of power units required to place this pump.
      */
@@ -43,6 +43,7 @@ public class Pump extends DamageableMachineBase implements Powered, PlayerOverHo
     //    private final Damageable health;
     private final int finalAnimIndex;
     private int animIndex = 1;
+    private final DamageHandler damageHandler;
 
     /**
      * Constructs a new Pump at the given position. Initializes an animation timer that fires
@@ -61,13 +62,13 @@ public class Pump extends DamageableMachineBase implements Powered, PlayerOverHo
         animTimer = new RepeatingTimer(Pump.ANIM_TICK_INTERVAL);
         pumpTimer = new RepeatingTimer(Pump.PUMP_TIMER_INTERVAL);
         this.pumpTarget = pumpTarget;
+        this.damageHandler = new DamageHandler();
     }
 
     /**
      * Handles updating the anim to the next sprite,
      * adjusting our internal index and resetting it to the start if we go past the final index.
      *
-     * @ensures animIndex == (\old(animIndex) % finalAnimIndex) + 1
      */
     private void updateArt() {
         animIndex += 1;
@@ -100,11 +101,15 @@ public class Pump extends DamageableMachineBase implements Powered, PlayerOverHo
     @Override
     public void tick(EngineState state, GameState game) {
         super.tick(state);
-        checkAndApplyWeatherDamage(state, game);
 
-        if (this.isDamaged()) {
+        final Weather weather = game.getWeather();
+        Damage dmg = weather.getDamage(state.getDimensions(), this.getPosition());
+        if (dmg != null) {
+            this.damageHandler.setDamage(dmg);
+        }
+        if (this.damageHandler.isDamaged()) {
             setSprite(art.getSprite("damaged"));
-            return;
+            return; //exit early the solar panel is damaged!
         }
 
         animTimer.tick();
@@ -114,17 +119,18 @@ public class Pump extends DamageableMachineBase implements Powered, PlayerOverHo
             updateArt();
         }
         if (pumpTimer.isFinished() && game.getMachines().hasRequiredPower(getPowerRequirement())) {
-            pumpTarget.adjust(1);
+            int amountToPump = 1;
+            pumpTarget.adjust(amountToPump);
         }
     }
 
     @Override
     public void playerOver(EngineState state, GameState game) {
         if (!state.getKeys().isDown(Pump.USE_KEY)) {
-            return;
+            return; //we can exit early if no use happening
         }
-        if (this.isDamaged()) {
-            this.repairDamage();
+        if (this.damageHandler.isDamaged()) {
+            this.damageHandler.repairDamage();
         }
     }
 

@@ -22,17 +22,19 @@ import toxiccleanup.builder.weather.Weather;
  *
  * @provided
  */
-public class LightningRod extends GameEntity implements PlayerOverHook, Damageable {
+public class LightningRod extends DamageableMachineBase implements PlayerOverHook {
+    /** Pixel radius within which this rod attracts nearby lightning. */
     public static final int RADIUS = 300;
+
+    /** The number of power units required to place this lightning rod. */
     public static final int COST = 1;
+
     private static final SpriteGroup art = SpriteGallery.lightningrod;
-    private final DamageHandler damageHandler;
     private static final char USE_KEY = 'e';
 
     public LightningRod(Positionable position) {
         super(position);
         this.setSprite(art.getSprite("default"));
-        this.damageHandler = new DamageHandler();
     }
 
     /**
@@ -40,22 +42,24 @@ public class LightningRod extends GameEntity implements PlayerOverHook, Damageab
      *              dimension. Useful for processing keyboard presses or mouse movement.
      * @param game  The state of the game, including the player and world. Can be used to query or
      *              update the game state.
+     * @ensures isDamaged() ==> getSprite() == art.getSprite("damaged")
+     * @ensures !isDamaged() ==> game.getWeather().applyLightningRod(getPosition()) was called
      */
     @Override
     public void tick(EngineState state, GameState game) {
         super.tick(state, game);
 
-        final Weather weather = game.getWeather();
-        final Damage dmg = weather.getDamage(state.getDimensions(), this.getPosition());
+        final Damage dmg = game.getWeather().getDamage(state.getDimensions(), this.getPosition());
         if (dmg != null && !dmg.getType().equals(LightningDamage.TYPE)) {
             this.damageHandler.setDamage(dmg);
         }
+
         if (this.isDamaged()) {
             setSprite(art.getSprite("damaged"));
-            return; //exit early the machine is damaged!
+            return;
         }
         setSprite(art.getSprite("default"));
-        weather.applyLightningRod(this.getPosition());
+        game.getWeather().applyLightningRod(this.getPosition());
     }
 
     /**
@@ -67,41 +71,17 @@ public class LightningRod extends GameEntity implements PlayerOverHook, Damageab
      *              dimension. Useful for processing keyboard presses or mouse movement.
      * @param game  The state of the game, including the player and world. Can be used to query or
      *              update the game state.
+     * @ensures state.getKeys().isDown(USE_KEY) && \old(isDamaged()) ==> !isDamaged()
+     * @ensures !state.getKeys().isDown(USE_KEY) ==> isDamaged() == \old(isDamaged())
      */
     @Override
     public void playerOver(EngineState state, GameState game) {
         if (!state.getKeys().isDown(USE_KEY)) {
             return; //we can exit early if no use happening
         }
-        if (this.damageHandler.isDamaged()) {
-            this.damageHandler.repairDamage();
+        if (this.isDamaged()) {
+            this.repairDamage();
         }
     }
 
-    /**
-     * Returns if this damageable Object is or is not in its damaged state.
-     *
-     * @return if this damageable Object is or is not in its damaged state.
-     */
-    @Override
-    public boolean isDamaged() {
-        return this.damageHandler.isDamaged();
-    }
-
-    /**
-     * Sets the Damageable Object to it's damaged state.
-     */
-    @Override
-    public void setDamage(Damage dmg) {
-        this.damageHandler.setDamage(dmg);
-    }
-
-    /**
-     * Sets the Damageable Object to it's undamaged
-     */
-    @Override
-    public void repairDamage() {
-        this.damageHandler.repairDamage();
-
-    }
 }
